@@ -1,18 +1,18 @@
 const mongoose = require('mongoose');
 
 const messageSchema = new mongoose.Schema({
-  userId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true
-  },
-  username: {
+  senderNickname: {
     type: String,
     required: true
   },
   content: {
-    type: String,
+    type: String, // Can be text or base64 image
     required: true
+  },
+  type: {
+    type: String,
+    enum: ['text', 'image'],
+    default: 'text'
   },
   createdAt: {
     type: Date,
@@ -30,36 +30,24 @@ const roomSchema = new mongoose.Schema({
     type: String,
     required: true
   },
-  createdBy: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true
-  },
-  participants: [{
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User'
-  }],
-  messages: [messageSchema],
-  createdAt: {
+  // 12-hour TTL: MongoDB will delete the document after this time
+  expireAt: {
     type: Date,
-    default: Date.now
+    default: () => new Date(+new Date() + 12*60*60*1000), // 12 hours from now
+    index: { expires: 0 } 
   },
+  messages: [messageSchema],
   lastActivity: {
     type: Date,
     default: Date.now
   }
 });
 
-// Method to check if a user is a participant in the room
-roomSchema.methods.isParticipant = function(userId) {
-  return this.participants.some(participantId => participantId.equals(userId));
-};
-
 // Method to add a message to the room
-roomSchema.methods.addMessage = function(userId, username, content) {
-  this.messages.push({ userId, username, content });
+roomSchema.methods.addMessage = function(senderNickname, content, type = 'text') {
+  this.messages.push({ senderNickname, content, type });
   this.lastActivity = Date.now();
   return this.save();
 };
 
-module.exports = mongoose.models.Room || mongoose.model("Room", roomSchema);
+module.exports = mongoose.model("Room", roomSchema);

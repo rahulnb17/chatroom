@@ -1,198 +1,129 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-  <meta charset="UTF-8" />
-  <title>Chat App</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <style>
-    body {
-      font-family: sans-serif;
-      background: #f4f4f4;
-      padding: 20px;
-    }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Anonymous Chat</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            color: #333;
+        }
 
-    h2 {
-      text-align: center;
-      color: #333;
-    }
+        .container {
+            background: white;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+        }
 
-    #senderName {
-      text-align: center;
-      font-size: 1.2em;
-      margin-bottom: 20px;
-      color: #007bff;
-    }
+        h1 {
+            margin-bottom: 1.5rem;
+            color: #4a5568;
+        }
 
-    #messages {
-      list-style-type: none;
-      padding: 0;
-      margin-bottom: 20px;
-      max-height: 300px;
-      overflow-y: auto;
-      background: white;
-      border: 1px solid #ddd;
-      border-radius: 5px;
-    }
+        input {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 1rem;
+            border: 2px solid #e2e8f0;
+            border-radius: 6px;
+            box-sizing: border-box;
+            font-size: 1rem;
+        }
 
-    #messages li {
-      padding: 10px;
-      border-bottom: 1px solid #eee;
-    }
+        button {
+            width: 100%;
+            padding: 12px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
 
-    #error {
-      color: red;
-      text-align: center;
-      margin-bottom: 10px;
-      min-height: 20px;
-      padding: 10px;
-      border-radius: 4px;
-      display: none;
-    }
+        button:hover {
+            background: #5a67d8;
+        }
 
-    .error-active {
-      display: block;
-      background-color: #ffebee;
-      border: 1px solid #ffcdd2;
-    }
+        .features {
+            margin-top: 1.5rem;
+            font-size: 0.9rem;
+            color: #718096;
+            text-align: left;
+        }
 
-    #chatForm {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-
-    input {
-      padding: 10px;
-      font-size: 1em;
-      border: 1px solid #ccc;
-      border-radius: 4px;
-    }
-
-    .input-error {
-      border-color: #f44336 !important;
-    }
-
-    button {
-      padding: 10px 15px;
-      font-size: 1em;
-      background-color: #007bff;
-      color: white;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-    }
-
-    button:hover {
-      background-color: #0056b3;
-    }
-
-    .message-sent {
-      color: #4caf50;
-      background-color: #e8f5e9;
-    }
-
-    .message-received {
-      color: #2196f3;
-      background-color: #e3f2fd;
-    }
-  </style>
+        .features li {
+            margin-bottom: 0.5rem;
+        }
+    </style>
 </head>
+
 <body>
-  <h2>Real-Time Chat</h2>
-  <div id="senderName"></div>
-  <div id="error"></div>
+    <div class="container">
+        <h1>Anonymous Chat</h1>
+        <input type="text" id="nickname" placeholder="Your Nickname" maxlength="15" style="margin-bottom: 0.5rem;">
+        <input type="text" id="roomName" placeholder="Room Name (Optional)" maxlength="20">
+        <button id="createBtn">Create Instant Room</button>
 
-  <ul id="messages"></ul>
+        <ul class="features">
+            <li>🔒 No Login Required</li>
+            <li>⏱️ Rooms expire in 12 hours</li>
+            <li>👥 Max 50 Participants</li>
+            <li>📷 Paste images directly (Ctrl+V)</li>
+        </ul>
+    </div>
 
-  <form id="chatForm">
-    <input id="receiverInput" placeholder="Receiver Username" required />
-    <input id="messageInput" autocomplete="off" placeholder="Type your message..." required />
-    <button type="submit">Send</button>
-  </form>
+    <script>
+        document.getElementById('createBtn').addEventListener('click', async () => {
+            const nickname = document.getElementById('nickname').value.trim();
+            const name = document.getElementById('roomName').value.trim();
+            const btn = document.getElementById('createBtn');
 
-  <script src="/socket.io/socket.io.js"></script>
-  <script>
-    const username = localStorage.getItem('username');
-    const token = localStorage.getItem('token');
-    
-    if (!username || !token) {
-      alert('You must be logged in');
-      window.location.href = '/login.html';
-    }
+            if (nickname.length < 2) {
+                return alert('Please enter a nickname (at least 2 chars)');
+            }
 
-    document.getElementById('senderName').textContent = `Logged in as: ${username}`;
+            btn.disabled = true;
+            btn.textContent = 'Creating...';
 
-    const socket = io({
-      auth: { token }
-    });
+            try {
+                const res = await fetch('/api/create-room', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name })
+                });
 
-    const chatForm = document.getElementById('chatForm');
-    const receiverInput = document.getElementById('receiverInput');
-    const messageInput = document.getElementById('messageInput');
-    const messagesList = document.getElementById('messages');
-    const errorDiv = document.getElementById('error');
-
-    function showError(message) {
-      errorDiv.textContent = message;
-      errorDiv.classList.add('error-active');
-      receiverInput.classList.add('input-error');
-      
-      setTimeout(() => {
-        errorDiv.classList.remove('error-active');
-        receiverInput.classList.remove('input-error');
-      }, 5000);
-    }
-
-    chatForm.addEventListener('submit', function(event) {
-      event.preventDefault();
-      errorDiv.textContent = '';
-      errorDiv.classList.remove('error-active');
-      receiverInput.classList.remove('input-error');
-
-      const receiver = receiverInput.value.trim();
-      const message = messageInput.value.trim();
-
-      if (receiver && message) {
-        const msgData = {
-          sender: username,
-          receiver,
-          message,
-        };
-
-        socket.emit('private_message', msgData);
-        
-        // Optimistic UI update
-        const li = document.createElement('li');
-        li.textContent = `To ${receiver}: ${message}`;
-        li.classList.add('message-sent');
-        messagesList.appendChild(li);
-        messagesList.scrollTop = messagesList.scrollHeight;
-        
-        messageInput.value = '';
-      }
-    });
-
-    socket.on('private_message', (data) => {
-      const li = document.createElement('li');
-      li.textContent = `From ${data.sender}: ${data.message}`;
-      li.classList.add('message-received');
-      messagesList.appendChild(li);
-      messagesList.scrollTop = messagesList.scrollHeight;
-    });
-
-    socket.on('error', (data) => {
-      if (data.type === 'RECEIVER_INVALID' || data.error === 'ERROR RECEIVER INVALID') {
-        showError(`Error: User "${data.receiver || receiverInput.value.trim()}" not found`);
-      } else {
-        showError(data.message || data.error || 'An error occurred');
-      }
-    });
-
-    // Clear error when user starts typing in receiver input
-    receiverInput.addEventListener('input', () => {
-      errorDiv.classList.remove('error-active');
-      receiverInput.classList.remove('input-error');
-    });
-  </script>
+                if (res.ok) {
+                    const data = await res.json();
+                    // Pre-set nickname in storage so chat.html skips prompt
+                    sessionStorage.setItem(`nick_${data.roomId}`, nickname);
+                    window.location.href = `/chat?room=${data.roomId}`;
+                } else {
+                    alert('Failed to create room');
+                    btn.disabled = false;
+                    btn.textContent = 'Create Instant Room';
+                }
+            } catch (error) {
+                console.error(error);
+                alert('Error creating room');
+                btn.disabled = false;
+                btn.textContent = 'Create Instant Room';
+            }
+        });
+    </script>
 </body>
+
 </html>
